@@ -16,7 +16,6 @@ data class Game(
 }
 
 data class GameSet(val cubes: Cubes)
-
 data class Cubes(val red: Int, val green: Int, val blue: Int) {
     fun addCubes(color: String, count: Int) = when (color) {
         "red" -> copy(red = red + count)
@@ -26,32 +25,32 @@ data class Cubes(val red: Int, val green: Int, val blue: Int) {
     }
 }
 
+fun parseGame(line: String) = line.split(": ")
+    .fold(Game(0, emptyList())) { game, gameIdOrSets ->
+        if (game.gameId == 0)
+            game.copy(gameId = gameIdOrSets.asGameId)
+        else
+            game.copy(gameSets = parseGameSets(gameIdOrSets))
+    }
+
+fun parseGameSets(sets: String) = sets.split("; ")
+    .map { set ->
+        set.split(", ")
+            .fold(Cubes(0, 0, 0)) { cubes, countColor ->
+                with(parseColorCount(countColor)) {
+                    val count = first
+                    val color = second
+                    cubes.addCubes(color, count)
+                }
+            }.let { cubes -> GameSet(cubes) }
+    }
+
+fun parseColorCount(countColor: String) = countColor.split(" ")
+    .let { it.first().toInt() to it.last().lowercase() }
+
+val String.asGameId: Int get() = split(" ").last().toInt()
+
 fun main() {
-    fun parseGame(line: String) = line.replace(",", "")
-        .split(":")
-        .fold(Game(0, emptyList())) { game, sets ->
-            if (game.gameId == 0) {
-                val gameId = sets.split(" ").last().toInt()
-                game.copy(gameId = gameId)
-            } else {
-                val gameSets = sets.split(";")
-                    .map { set ->
-                        set.split(" ")
-                            .filter { it.isNotBlank() }
-                            .chunked(2)
-                            .fold(Cubes(0, 0, 0)) { cubes, pair ->
-                                val color = pair.last().lowercase()
-                                val count = pair.first().toInt()
-
-                                cubes.addCubes(color, count)
-                            }.let { cubes -> GameSet(cubes) }
-                    }
-
-                game.copy(gameSets = gameSets)
-            }
-        }
-
-
     fun part1(input: List<String>): Int {
         val maxCubes = Cubes(12, 13, 14)
 
