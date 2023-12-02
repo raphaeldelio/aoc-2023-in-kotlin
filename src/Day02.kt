@@ -28,28 +28,28 @@ data class Cubes(val red: Int, val green: Int, val blue: Int) {
 
 fun main() {
     fun parseGame(line: String) = line.replace(",", "")
-            .split(":")
-            .fold(Game(0, emptyList())) { game, sets ->
-                if (game.gameId == 0) {
-                    val gameId = sets.split(" ").last().toInt()
-                    game.copy(gameId = gameId)
-                } else {
-                    val gameSets = sets.split(";")
-                        .map{ set ->
-                            set.split(" ")
-                                .filter { it.isNotBlank() }
-                                .chunked(2)
-                                .fold(Cubes(0, 0, 0)) { cubes, pair ->
-                                    val color = pair.last().lowercase()
-                                    val count = pair.first().toInt()
+        .split(":")
+        .fold(Game(0, emptyList())) { game, sets ->
+            if (game.gameId == 0) {
+                val gameId = sets.split(" ").last().toInt()
+                game.copy(gameId = gameId)
+            } else {
+                val gameSets = sets.split(";")
+                    .map { set ->
+                        set.split(" ")
+                            .filter { it.isNotBlank() }
+                            .chunked(2)
+                            .fold(Cubes(0, 0, 0)) { cubes, pair ->
+                                val color = pair.last().lowercase()
+                                val count = pair.first().toInt()
 
-                                    cubes.addCubes(color, count)
-                                }.let { cubes -> GameSet(cubes) }
-                        }
+                                cubes.addCubes(color, count)
+                            }.let { cubes -> GameSet(cubes) }
+                    }
 
-                    game.copy(gameSets = gameSets)
-                }
+                game.copy(gameSets = gameSets)
             }
+        }
 
 
     fun part1(input: List<String>): Int {
@@ -57,8 +57,8 @@ fun main() {
 
         return input.sumOf { line ->
             parseGame(line).takeIf {
-                    it.canBePlayed(maxCubes)
-                }?.gameId ?: 0
+                it.canBePlayed(maxCubes)
+            }?.gameId ?: 0
         }
     }
 
