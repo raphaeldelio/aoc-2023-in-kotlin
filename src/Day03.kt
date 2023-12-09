@@ -7,30 +7,104 @@ data class Point(val i: Int, val j: Int, val value: String = "") {
 
     fun isDigit() = value[0].isDigit()
     fun isSymbol() = !isDigit() && value != "."
-}
 
-fun Point.getElementInThe(direction: Direction, array: List<List<Char>>): Point? {
-    val iMinus1 = (i - 1).positiveOrNull()
-    val jMinus1 = (j - 1).positiveOrNull()
-    val iPlus1 = (i + 1).lessThanOrNull(array.size - 1)
-    val jPlus1 = (j + 1).lessThanOrNull(array[i].size - 1)
+    private fun getElementInThe(direction: Direction, array: List<List<Char>>): Point? {
+        val iMinus1 = (i - 1).positiveOrNull()
+        val jMinus1 = (j - 1).positiveOrNull()
+        val iPlus1 = (i + 1).lessThanOrNull(array.size - 1)
+        val jPlus1 = (j + 1).lessThanOrNull(array[i].size - 1)
 
-    return when (direction) {
-        Direction.DTL -> if (iMinus1 != null && jMinus1 != null) Point(iMinus1, jMinus1, array[iMinus1][jMinus1]) else null
-        Direction.T -> if (iMinus1 != null) Point(iMinus1, j, array[iMinus1][j]) else null
-        Direction.DTR -> if (iMinus1 != null && jPlus1 != null) Point(iMinus1, jPlus1, array[iMinus1][jPlus1]) else null
-        Direction.R -> if (jPlus1 != null) Point(i, jPlus1, array[i][jPlus1]) else null
-        Direction.DBR -> if (jPlus1 != null && iPlus1 != null) Point(iPlus1, jPlus1, array[iPlus1][jPlus1]) else null
-        Direction.B -> if (iPlus1 != null) Point(iPlus1, j, array[iPlus1][j]) else null
-        Direction.DBL -> if (iPlus1 != null && jMinus1 != null) Point(iPlus1, jMinus1, array[iPlus1][jMinus1]) else null
-        Direction.L -> if (jMinus1 != null) Point(i, jMinus1, array[i][jMinus1]) else null
+        return when (direction) {
+            Direction.DTL -> if (iMinus1 != null && jMinus1 != null) Point(iMinus1, jMinus1, array[iMinus1][jMinus1]) else null
+            Direction.T -> if (iMinus1 != null) Point(iMinus1, j, array[iMinus1][j]) else null
+            Direction.DTR -> if (iMinus1 != null && jPlus1 != null) Point(iMinus1, jPlus1, array[iMinus1][jPlus1]) else null
+            Direction.R -> if (jPlus1 != null) Point(i, jPlus1, array[i][jPlus1]) else null
+            Direction.DBR -> if (jPlus1 != null && iPlus1 != null) Point(iPlus1, jPlus1, array[iPlus1][jPlus1]) else null
+            Direction.B -> if (iPlus1 != null) Point(iPlus1, j, array[iPlus1][j]) else null
+            Direction.DBL -> if (iPlus1 != null && jMinus1 != null) Point(iPlus1, jMinus1, array[iPlus1][jMinus1]) else null
+            Direction.L -> if (jMinus1 != null) Point(i, jMinus1, array[i][jMinus1]) else null
+        }
+    }
+
+    fun getSurroundingElements(array: List<List<Char>>) = mapOf(
+        Direction.DTL to getElementInThe(Direction.DTL, array),
+        Direction.T to getElementInThe(Direction.T, array),
+        Direction.DTR to getElementInThe(Direction.DTR, array),
+        Direction.R to getElementInThe(Direction.R, array),
+        Direction.DBR to getElementInThe(Direction.DBR, array),
+        Direction.B to getElementInThe(Direction.B, array),
+        Direction.DBL to getElementInThe(Direction.DBL, array),
+        Direction.L to getElementInThe(Direction.L, array),
+    )
+
+    fun getAdjacentNumbers(array: List<List<Char>>): List<Point> {
+        val surroundingElements = this.getSurroundingElements(array)
+        val numberTop = surroundingElements[Direction.T]?.getNumbersToBothSides(array)
+        val numberBottom = surroundingElements[Direction.B]?.getNumbersToBothSides(array)
+        val numberLeft = surroundingElements[Direction.L]?.getNumbersToTheLeft(array)
+        val numberRight = surroundingElements[Direction.R]?.getNumbersToTheRight(array)
+
+        val numberTopLeft = if (numberTop == null) surroundingElements[Direction.DTL]?.getNumbersToTheLeft(array) else null
+        val numberTopRight = if (numberTop == null) surroundingElements[Direction.DTR]?.getNumbersToTheRight(array) else null
+        val numberBottomLeft = if (numberBottom == null) surroundingElements[Direction.DBL]?.getNumbersToTheLeft(array) else null
+        val numberBottomRight = if (numberBottom == null) surroundingElements[Direction.DBR]?.getNumbersToTheRight(array) else null
+
+        return listOfNotNull(
+            numberTop,
+            numberBottom,
+            numberLeft,
+            numberRight,
+            numberTopLeft,
+            numberTopRight,
+            numberBottomLeft,
+            numberBottomRight,
+        )
+    }
+
+    private fun getNumbersToTheRight(array: List<List<Char>>): Point? {
+        if (value == ".") return null
+
+        val pointToTheRight = this.getElementInThe(Direction.R, array)
+
+        // Base case to stop recursion
+        if (pointToTheRight == null || !pointToTheRight.isDigit()) {
+            return this
+        }
+
+        return this.copy(
+            i = pointToTheRight.i,
+            j = pointToTheRight.j,
+            value = value + pointToTheRight.getNumbersToTheRight(array)?.value
+        )
+    }
+
+    private fun getNumbersToTheLeft(array: List<List<Char>>): Point? {
+        if (value == ".") return null
+
+        val pointToTheLeft = this.getElementInThe(Direction.L, array)
+
+        if (pointToTheLeft == null || !pointToTheLeft.isDigit()) {
+            return this
+        }
+
+        return this.copy(
+            i = pointToTheLeft.i,
+            j = pointToTheLeft.j,
+            value = pointToTheLeft.getNumbersToTheLeft(array)?.value + value
+        )
+    }
+
+    private fun getNumbersToBothSides(array: List<List<Char>>): Point? {
+        if (value == ".") return null
+
+        val numbersToTheLeft = this.getNumbersToTheLeft(array)?.value?.removeSuffix(this.value)
+        val numbersToTheRight = this.getNumbersToTheRight(array)?.value?.removePrefix(this.value)
+        return this.copy(value = numbersToTheLeft + value +  numbersToTheRight)
     }
 }
 
 fun Int.positiveOrNull() = if (this >= 0) this else null
 fun Int.lessThanOrNull(max: Int) = if (this <= max) this else null
-
-
 
 fun List<String>.toArray(): List<List<Char>> {
     return fold(listOf()) { row, line ->
@@ -38,88 +112,12 @@ fun List<String>.toArray(): List<List<Char>> {
     }
 }
 
-fun Point.getSurroundingElements(array: List<List<Char>>) = mapOf(
-    Direction.DTL to getElementInThe(Direction.DTL, array),
-    Direction.T to getElementInThe(Direction.T, array),
-    Direction.DTR to getElementInThe(Direction.DTR, array),
-    Direction.R to getElementInThe(Direction.R, array),
-    Direction.DBR to getElementInThe(Direction.DBR, array),
-    Direction.B to getElementInThe(Direction.B, array),
-    Direction.DBL to getElementInThe(Direction.DBL, array),
-    Direction.L to getElementInThe(Direction.L, array),
-)
-
 fun isAdjacentToASymbol(surroundingElements: Map<Direction, Point?>) =
     surroundingElements.any { (_, element) -> element != null && element.isSymbol() }
 
 fun isANumberToTheRight(surroundingElements: Map<Direction, Point?>): Boolean {
     if (surroundingElements[Direction.R] == null) return false
     return surroundingElements[Direction.R]?.isDigit() == true
-}
-
-fun getAdjacentNumbers(array: List<List<Char>>, point: Point): List<Point> {
-    val surroundingElements = point.getSurroundingElements(array)
-    val numberTop = surroundingElements[Direction.T]?.getNumbersToBothSides(array)
-    val numberBottom = surroundingElements[Direction.B]?.getNumbersToBothSides(array)
-    val numberLeft = surroundingElements[Direction.L]?.getNumbersToTheLeft(array)
-    val numberRight = surroundingElements[Direction.R]?.getNumbersToTheRight(array)
-
-    val numberTopLeft = if (numberTop == null) surroundingElements[Direction.DTL]?.getNumbersToTheLeft(array) else null
-    val numberTopRight = if (numberTop == null) surroundingElements[Direction.DTR]?.getNumbersToTheRight(array) else null
-    val numberBottomLeft = if (numberBottom == null) surroundingElements[Direction.DBL]?.getNumbersToTheLeft(array) else null
-    val numberBottomRight = if (numberBottom == null) surroundingElements[Direction.DBR]?.getNumbersToTheRight(array) else null
-
-    return listOfNotNull(
-        numberTop,
-        numberBottom,
-        numberLeft,
-        numberRight,
-        numberTopLeft,
-        numberTopRight,
-        numberBottomLeft,
-        numberBottomRight,
-    )
-}
-
-fun Point.getNumbersToTheRight(array: List<List<Char>>): Point? {
-    if (value == ".") return null
-
-    val pointToTheRight = this.getElementInThe(Direction.R, array)
-
-    // Base case to stop recursion
-    if (pointToTheRight == null || !pointToTheRight.isDigit()) {
-        return this
-    }
-
-    return this.copy(
-        i = pointToTheRight.i,
-        j = pointToTheRight.j,
-        value = value + pointToTheRight.getNumbersToTheRight(array)?.value
-    )
-}
-
-fun Point.getNumbersToTheLeft(array: List<List<Char>>): Point? {
-    if (value == ".") return null
-
-    val pointToTheLeft = this.getElementInThe(Direction.L, array)
-
-    if (pointToTheLeft == null || !pointToTheLeft.isDigit()) {
-        return this
-    }
-
-    return this.copy(
-        i = pointToTheLeft.i,
-        j = pointToTheLeft.j,
-        value = pointToTheLeft.getNumbersToTheLeft(array)?.value + value
-    )
-}
-
-fun Point.getNumbersToBothSides(array: List<List<Char>>): Point? {
-    if (value == ".") return null
-
-    val numbersToTheLeft = this.getNumbersToTheLeft(array)?.value?.removeSuffix(this.value)
-    val numbersToTheRight = this.getNumbersToTheRight(array)?.value?.removePrefix(this.value)
-    return this.copy(value = numbersToTheLeft + value +  numbersToTheRight)
 }
 
 data class Part1AccValue(
@@ -131,8 +129,8 @@ data class Part1AccValue(
 fun main() {
     fun part1(input: List<String>): Int {
         return input.toArray().let { array ->
-            input.foldIndexed(initial = Part1AccValue()) { i, acc, row ->
-                row.foldIndexed(acc) innerFold@{ j, rowAcc, _ ->
+            input.foldIndexed(0) { i, acc, row ->
+                row.foldIndexed(Part1AccValue()) innerFold@{ j, rowAcc, _ ->
                     val point = Point(i, j, array[i][j].toString())
 
                     val surroundingElements = point.getSurroundingElements(array)
@@ -162,8 +160,8 @@ fun main() {
                         acc3
 
                     acc4
-                }
-            }.sum
+                }.sum + acc
+            }
         }
     }
 
@@ -175,7 +173,7 @@ fun main() {
                     val point = Point(i, j, char)
 
                     if (char == '*') {
-                        val adjacentNumbers = getAdjacentNumbers(array, point)
+                        val adjacentNumbers = point.getAdjacentNumbers(array)
                         if (adjacentNumbers.size == 2) {
                             return@innerFold innerSum + adjacentNumbers.first().value.toInt() * adjacentNumbers.last().value.toInt()
                         }
